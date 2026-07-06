@@ -1,7 +1,9 @@
 # Pokémon Holo Card — Gyro on Phone, Hosted on Vercel
 
 **Date:** 2026-07-06
-**Status:** Approved design, pre-implementation
+**Status:** SUPERSEDED — executed, then retired. The fork now lives as a
+reference (see `2026-07-06-foil-studio-design.md`); its Vercel deployment is
+replaced by the Foil Studio app at repo root.
 
 ## Goal
 

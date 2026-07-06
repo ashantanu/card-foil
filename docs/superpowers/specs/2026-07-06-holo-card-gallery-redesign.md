@@ -1,7 +1,9 @@
 # Holo Card Gallery — Redesign
 
 **Date:** 2026-07-06
-**Status:** Approved design, pre-implementation
+**Status:** Implemented, then retired to reference — the gallery app moves to
+`reference/pokemon-cards/` and its deployment is replaced by Foil Studio (see
+`2026-07-06-foil-studio-design.md`).
 **Supersedes the UI of:** 2026-07-06-pokemon-card-gyro-vercel-design.md (keeps its holo engine + deploy)
 
 ## Goal
