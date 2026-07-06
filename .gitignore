@@ -1,4 +1,23 @@
+# Dependencies / build
 node_modules/
 dist/
-_inspect/
+dist-ssr/
+*.local
+
+# Deploy
 .vercel/
+
+# Generated per-card foil textures (not committed; see README-pokemon-cards.md)
+public/img/foils/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.sw?
