@@ -1,6 +1,6 @@
 <script>
   import { spring } from "svelte/motion";
-  import { onMount } from "svelte";
+  import { onMount, onDestroy, tick } from "svelte";
   import { activeCard } from "../stores/activeCard.js";
   import { orientation, resetBaseOrientation } from "../stores/orientation.js";
   import { clamp, round, adjust } from "../helpers/Math.js";
@@ -23,6 +23,10 @@
 
   // context/environment props
   export let showcase = false;
+  // overlay mode: the card is opened inside CardOverlay. It auto-opens on mount
+  // (centers, scales, full holo + gyro) and lets the overlay own close, so the
+  // card's own click doesn't toggle it shut.
+  export let overlay = false;
 
   const randomSeed = {
     x: Math.random(),
@@ -42,6 +46,7 @@
 
 
   let thisCard;
+  let frontImgEl;
   let repositionTimer;
   let rafId = null;
   let pendingSpringUpdate = null;
@@ -97,6 +102,12 @@
 
     const $el = e.target;
     const rect = $el.getBoundingClientRect(); // get element's current size/position
+    // guard against a collapsed rect (e.g. the card rotated near edge-on): a
+    // near-zero width would make the percent math divide by ~0 → NaN, which
+    // permanently poisons the tilt spring into a runaway rotation.
+    if (rect.width < 40 || rect.height < 40) {
+      return;
+    }
     const absolute = {
       x: e.clientX - rect.left, // get mouse position from left
       y: e.clientY - rect.top, // get mouse position from right
@@ -171,13 +182,15 @@
   };
 
   const activate = (e) => {
+    // In overlay mode the overlay owns open/close; ignore card clicks.
+    if (overlay) return;
     if ($activeCard && $activeCard === thisCard) {
       $activeCard = undefined;
     } else {
       $activeCard = thisCard;
       resetBaseOrientation();
       // @ts-ignore
-      gtag("event", "select_item", {
+      if (typeof gtag === "function") gtag("event", "select_item", {
         item_list_id: "cards_list",
         item_list_name: "Pokemon Cards",
         items: [
@@ -197,10 +210,13 @@
 
   const deactivate = (e) => {
     interactEnd();
+    // overlay owns close; a blur shouldn't collapse the opened card
+    if (overlay) return;
     $activeCard = undefined;
   };
 
   const reposition = (e) => {
+    if (overlay) return;
     clearTimeout(repositionTimer);
     repositionTimer = setTimeout(() => {
       if ($activeCard && $activeCard === thisCard) {
@@ -210,6 +226,9 @@
   };
 
   const setCenter = () => {
+    // overlay centres the card itself; the fly-to-centre translate would fight
+    // the overlay's flexbox centring and feed back into a runaway transform.
+    if (overlay) return;
     const rect = thisCard.getBoundingClientRect(); // get element's size/position
     const view = document.documentElement; // get window/viewport size
 
@@ -224,12 +243,19 @@
   };
 
   const popover = () => {
-    const rect = thisCard.getBoundingClientRect(); // get element's size/position
     let delay = 100;
-    let scaleW = (window.innerWidth / rect.width) * 0.9;
-    let scaleH = (window.innerHeight / rect.height) * 0.9;
-    let scaleF = 1.75;
-    setCenter();
+
+    // overlay mode: the overlay sizes + centres the card via CSS. Skip the
+    // fly-to-centre translate, the fit-to-viewport scale AND the 360° flip —
+    // all fight the overlay layout, and the flip momentarily turns the card
+    // edge-on, where a pointermove hits a zero-width rect and poisons the tilt
+    // spring. The card just tilts to the pointer / gyro.
+    if (overlay) {
+      firstPop = false;
+      interactEnd(null, delay);
+      return;
+    }
+
     if (firstPop) {
       delay = 1000;
       springRotateDelta.set({
@@ -238,6 +264,12 @@
       });
     }
     firstPop = false;
+
+    const rect = thisCard.getBoundingClientRect(); // get element's size/position
+    let scaleW = (window.innerWidth / rect.width) * 0.9;
+    let scaleH = (window.innerHeight / rect.height) * 0.9;
+    let scaleF = 1.75;
+    setCenter();
     springScale.set(Math.min(scaleW, scaleH, scaleF));
     interactEnd(null, delay);
   };
@@ -370,11 +402,33 @@
     }
   };
 
+  onDestroy(() => {
+    // if this overlay card is the active one, clear it so state doesn't leak
+    if (overlay && $activeCard === thisCard) {
+      $activeCard = undefined;
+    }
+  });
+
   onMount(() => {
 
     // set the front image on mount so that
     // the lazyloading can work correctly
     front_img = img_base + img;
+
+    // a cached image can be `complete` before the `on:load` handler attaches,
+    // so `load` never fires and `loading` stays true (front hidden). Once the
+    // src is bound, clear loading manually if the image is already decoded.
+    tick().then(() => {
+      if (frontImgEl && frontImgEl.complete && frontImgEl.naturalWidth > 0) {
+        imageLoader();
+      }
+    });
+
+    // overlay mode: open immediately (centre, scale, holo, gyro baseline)
+    if (overlay) {
+      resetBaseOrientation();
+      $activeCard = thisCard;
+    }
 
     // run a cute little animation on load
     // for showcase card
@@ -462,7 +516,7 @@
           src={front_img}
           alt="Front design of the {name} Pokemon Card, with the stats and info around the edge"
           on:load={imageLoader}
-          loading="lazy"
+          bind:this={frontImgEl}
           width="660"
           height="921"
         />
