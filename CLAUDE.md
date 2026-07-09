@@ -4,15 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-**Pre-implementation.** This repo currently contains only a research document —
-`compass_artifact_wf-*_text_markdown.md` — a 2026 guide to building realistic
-interactive holographic (Pokémon-style) trading cards on the web. There is no
-source code, package manifest, build system, or tests yet. When implementation
-starts, this file should be updated with real build/lint/test commands.
+**Foil Studio** (Vite + React + react-three-fiber) lives at the repo root and is
+what the Vercel project `card-foil` deploys. Spec:
+`docs/superpowers/specs/2026-07-06-foil-studio-design.md`. Plan:
+`docs/superpowers/plans/2026-07-06-foil-studio-v1.md`.
 
-The goal is to build a web component/page that renders a holographic card with a
-realistic foil "holo" shine, 3D tilt/parallax, and phone gyroscope support.
-Intended embedding target is the user's personal site (ashantanu.com).
+- Build: `npm run build` · Dev: `npm run dev` · Tests: `npm run test` (Vitest, pure logic only)
+- `reference/pokemon-cards/` is the retired GPL fork (study/benchmark only, own
+  package.json, never deployed). Run it with `cd reference/pokemon-cards && npm i && npm run dev`.
 
 ## Technical direction (decided in the research doc)
 
