@@ -8,7 +8,7 @@ dist-ssr/
 .vercel/
 
 # Generated per-card foil textures (not committed; see README-pokemon-cards.md)
-public/img/foils/
+reference/pokemon-cards/public/img/foils/
 
 # Logs
 logs
