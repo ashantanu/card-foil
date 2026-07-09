@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1400" viewBox="0 0 1000 1400">
+  <rect width="1000" height="1400" fill="#000000"/>
+  <rect x="40" y="40" width="920" height="1320" fill="none" stroke="#ffffff" stroke-width="6"/>
+  <rect x="60" y="60" width="880" height="1280" fill="none" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="500" cy="300" r="90" fill="none" stroke="#ffffff" stroke-width="8"/>
+  <text x="500" y="330" font-family="Georgia, 'Times New Roman', serif" font-size="90"
+        fill="#ffffff" text-anchor="middle">A&amp;N</text>
+  <text x="500" y="560" font-family="Georgia, 'Times New Roman', serif" font-size="110"
+        font-style="italic" fill="#ffffff" text-anchor="middle">Ava &amp; Noah</text>
+  <text x="500" y="960" font-family="Georgia, 'Times New Roman', serif" font-size="56"
+        fill="#ffffff" text-anchor="middle">Saturday, the sixth of June</text>
+  <path d="M 300 1180 Q 500 1120 700 1180" fill="none" stroke="#ffffff" stroke-width="5"/>
+</svg>
