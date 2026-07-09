@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project status
 
 **Foil Studio** (Vite + React + react-three-fiber) lives at the repo root and is
-what the Vercel project `card-foil` deploys. Spec:
+what the Vercel project `card-foil` deploys. Live: https://card-foil.vercel.app Spec:
 `docs/superpowers/specs/2026-07-06-foil-studio-design.md`. Plan:
 `docs/superpowers/plans/2026-07-06-foil-studio-v1.md`.
 
