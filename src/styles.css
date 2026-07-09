@@ -31,7 +31,7 @@ body { background: #14120f; color: #e8e2d5; font-family: system-ui, sans-serif; 
 .edit-layout {
   flex: 1; min-height: 0; display: flex; gap: 16px; padding: 16px;
 }
-.painter { position: relative; flex: 1; max-height: 100%; align-self: center; touch-action: none; }
+.painter { position: relative; height: 100%; max-width: calc(100% - 260px); align-self: center; touch-action: none; flex: 0 1 auto; }
 .painter-layer { position: absolute; inset: 0; width: 100%; height: 100%; }
 .panel { width: 240px; display: flex; flex-direction: column; gap: 16px; font-size: 14px; }
 .panel fieldset { border: 1px solid #2c2822; border-radius: 8px; display: grid; gap: 6px; }
@@ -42,4 +42,5 @@ body { background: #14120f; color: #e8e2d5; font-family: system-ui, sans-serif; 
 @media (max-width: 700px) {
   .edit-layout { flex-direction: column; }
   .panel { width: 100%; }
+  .painter { max-width: 100%; height: auto; width: 100%; }
 }

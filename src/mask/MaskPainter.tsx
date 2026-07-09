@@ -34,15 +34,22 @@ export function MaskPainter({
     const octx = overlay.getContext('2d')!
 
     const paintOverlay = () => {
-      octx.clearRect(0, 0, overlay.width, overlay.height)
-      octx.globalAlpha = 0.55
-      octx.drawImage(editor.canvas, 0, 0)
-      // Tint the white mask gold so it reads as "foil here".
-      octx.globalCompositeOperation = 'source-in'
-      octx.fillStyle = '#c9a24b'
-      octx.fillRect(0, 0, overlay.width, overlay.height)
-      octx.globalCompositeOperation = 'source-over'
-      octx.globalAlpha = 1
+      // Derive per-pixel alpha from mask luminance instead of compositing the
+      // (fully opaque) mask canvas directly — otherwise the whole card gets
+      // tinted uniformly since the mask has alpha=1 everywhere.
+      const maskCtx = editor.canvas.getContext('2d')!
+      const maskData = maskCtx.getImageData(0, 0, editor.canvas.width, editor.canvas.height)
+      const overlayData = octx.createImageData(overlay.width, overlay.height)
+      const src = maskData.data
+      const dst = overlayData.data
+      for (let i = 0; i < src.length; i += 4) {
+        const maskValue = src[i] // red channel: 0 = no foil, 255 = foil
+        dst[i] = 201 // #c9a24b red
+        dst[i + 1] = 162 // #c9a24b green
+        dst[i + 2] = 75 // #c9a24b blue
+        dst[i + 3] = maskValue * 0.55
+      }
+      octx.putImageData(overlayData, 0, 0)
     }
     paintOverlay()
     const prev = editor.onChange
