@@ -72,6 +72,7 @@ export class MaskEditor {
   }
 
   undo(): void {
+    if (this.stroking) return
     const prev = this.undoStack.pop()
     if (!prev) return
     this.ctx.putImageData(prev, 0, 0)
