@@ -11,3 +11,6 @@ body { background: #14120f; color: #e8e2d5; font-family: system-ui, sans-serif; 
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
   font-size: 13px; opacity: 0.7;
 }
+
+.stage { height: 100%; touch-action: none; }
+.flat-card { display: block; max-height: 90vh; max-width: 90vw; margin: 5vh auto; }
