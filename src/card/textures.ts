@@ -56,22 +56,31 @@ export function roughnessCanvasFromMask(mask: HTMLCanvasElement): HTMLCanvasElem
   return c
 }
 
+/** Foil never renders darker than this fraction of the artwork: pure metal
+    reflecting a dark part of the environment goes black, which makes large
+    foiled regions illegible. The floor keeps them readable; reflections
+    sweep on top. */
+export const FOIL_FLOOR = 0.35
+
 /**
  * Split the artwork by the mask so paper can render unlit. Pure.
  * albedo   = artwork where foil (lit/reflective), black where paper
- * emissive = artwork where paper (ignores lighting), black where foil
+ * emissive = artwork where paper (ignores lighting, exact pixels) plus a
+ *            `foilFloor` fraction of the artwork inside foil regions
  */
 export function splitByMask(
   artwork: Uint8ClampedArray,
   mask: Uint8ClampedArray,
+  foilFloor = FOIL_FLOOR,
 ): { albedo: Uint8ClampedArray; emissive: Uint8ClampedArray } {
   const albedo = new Uint8ClampedArray(artwork.length)
   const emissive = new Uint8ClampedArray(artwork.length)
   for (let i = 0; i < artwork.length; i += 4) {
     const m = mask[i] / 255
+    const emissiveScale = 1 - m * (1 - foilFloor)
     for (let c = 0; c < 3; c++) {
       albedo[i + c] = Math.round(artwork[i + c] * m)
-      emissive[i + c] = Math.round(artwork[i + c] * (1 - m))
+      emissive[i + c] = Math.round(artwork[i + c] * emissiveScale)
     }
     albedo[i + 3] = emissive[i + 3] = 255
   }

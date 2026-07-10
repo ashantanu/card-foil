@@ -3,6 +3,7 @@ import { floodSelect } from './floodSelect'
 import type { MaskEditor } from './maskEditor'
 
 export type Tool = 'brush' | 'eraser' | 'wand'
+export type WandMode = 'add' | 'remove'
 
 export function MaskPainter({
   artwork,
@@ -10,12 +11,16 @@ export function MaskPainter({
   tool,
   brushSize,
   tolerance,
+  wandMode,
+  highlightMask,
 }: {
   artwork: HTMLCanvasElement
   editor: MaskEditor
   tool: Tool
   brushSize: number
   tolerance: number
+  wandMode: WandMode
+  highlightMask: boolean
 }) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const bgRef = useRef<HTMLCanvasElement>(null)
@@ -33,6 +38,11 @@ export function MaskPainter({
     overlay.height = artwork.height
     const octx = overlay.getContext('2d')!
 
+    // Subtle gold reads nicely but disappears on gold-toned artwork; the
+    // highlight mode exists so over-selection (e.g. a wand grabbing half a
+    // photo card) is unmissable.
+    const [r, g, b, alpha] = highlightMask ? [255, 0, 200, 0.8] : [201, 162, 75, 0.55]
+
     const paintOverlay = () => {
       // Derive per-pixel alpha from mask luminance instead of compositing the
       // (fully opaque) mask canvas directly — otherwise the whole card gets
@@ -44,10 +54,10 @@ export function MaskPainter({
       const dst = overlayData.data
       for (let i = 0; i < src.length; i += 4) {
         const maskValue = src[i] // red channel: 0 = no foil, 255 = foil
-        dst[i] = 201 // #c9a24b red
-        dst[i + 1] = 162 // #c9a24b green
-        dst[i + 2] = 75 // #c9a24b blue
-        dst[i + 3] = maskValue * 0.55
+        dst[i] = r
+        dst[i + 1] = g
+        dst[i + 2] = b
+        dst[i + 3] = maskValue * alpha
       }
       octx.putImageData(overlayData, 0, 0)
     }
@@ -60,7 +70,7 @@ export function MaskPainter({
     return () => {
       editor.onChange = prev
     }
-  }, [artwork, editor])
+  }, [artwork, editor, highlightMask])
 
   /** Display px → mask-canvas px. */
   const toMask = (e: React.PointerEvent) => {
@@ -82,7 +92,7 @@ export function MaskPainter({
         if (tool === 'wand') {
           const ctx = artwork.getContext('2d', { willReadFrequently: true })!
           const raster = ctx.getImageData(0, 0, artwork.width, artwork.height)
-          editor.applySelection(floodSelect(raster, x, y, tolerance), 'add')
+          editor.applySelection(floodSelect(raster, x, y, tolerance), wandMode)
         } else {
           editor.beginStroke(x, y, brushSize, tool === 'eraser')
         }

@@ -1,5 +1,5 @@
 import { UploadPanel } from './upload/UploadPanel'
-import type { Tool } from './mask/MaskPainter'
+import type { Tool, WandMode } from './mask/MaskPainter'
 
 export function EditorPanel(props: {
   tool: Tool
@@ -8,6 +8,10 @@ export function EditorPanel(props: {
   setBrushSize: (n: number) => void
   tolerance: number
   setTolerance: (n: number) => void
+  wandMode: WandMode
+  setWandMode: (m: WandMode) => void
+  highlightMask: boolean
+  setHighlightMask: (v: boolean) => void
   onUndo: () => void
   onClear: () => void
   onExportMask: () => void
@@ -48,17 +52,42 @@ export function EditorPanel(props: {
       )}
 
       {props.tool === 'wand' && (
-        <label className="slider">
-          Tolerance {props.tolerance}
-          <input
-            type="range"
-            min={0}
-            max={120}
-            value={props.tolerance}
-            onChange={(e) => props.setTolerance(Number(e.target.value))}
-          />
-        </label>
+        <>
+          <label className="slider">
+            Tolerance {props.tolerance}
+            <input
+              type="range"
+              min={0}
+              max={120}
+              value={props.tolerance}
+              onChange={(e) => props.setTolerance(Number(e.target.value))}
+            />
+          </label>
+          <fieldset>
+            <legend>Wand mode</legend>
+            {(['add', 'remove'] as const).map((m) => (
+              <label key={m}>
+                <input
+                  type="radio"
+                  name="wand-mode"
+                  checked={props.wandMode === m}
+                  onChange={() => props.setWandMode(m)}
+                />
+                {m === 'add' ? 'add foil' : 'remove foil'}
+              </label>
+            ))}
+          </fieldset>
+        </>
       )}
+
+      <label>
+        <input
+          type="checkbox"
+          checked={props.highlightMask}
+          onChange={(e) => props.setHighlightMask(e.target.checked)}
+        />{' '}
+        Highlight foil (pink)
+      </label>
 
       <div className="row">
         <button onClick={props.onUndo}>Undo</button>

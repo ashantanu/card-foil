@@ -11,7 +11,7 @@ import {
 } from './card/textures'
 import { EditorPanel } from './EditorPanel'
 import { MaskEditor } from './mask/maskEditor'
-import { MaskPainter, type Tool } from './mask/MaskPainter'
+import { MaskPainter, type Tool, type WandMode } from './mask/MaskPainter'
 import { MotionPermission } from './input/MotionPermission'
 import { useTilt } from './input/useTilt'
 
@@ -53,6 +53,8 @@ export default function App() {
   const [tool, setTool] = useState<Tool>('brush')
   const [brushSize, setBrushSize] = useState(24)
   const [tolerance, setTolerance] = useState(40)
+  const [wandMode, setWandMode] = useState<WandMode>('add')
+  const [highlightMask, setHighlightMask] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -108,6 +110,8 @@ export default function App() {
             tool={tool}
             brushSize={brushSize}
             tolerance={tolerance}
+            wandMode={wandMode}
+            highlightMask={highlightMask}
           />
           <EditorPanel
             tool={tool}
@@ -116,6 +120,10 @@ export default function App() {
             setBrushSize={setBrushSize}
             tolerance={tolerance}
             setTolerance={setTolerance}
+            wandMode={wandMode}
+            setWandMode={setWandMode}
+            highlightMask={highlightMask}
+            setHighlightMask={setHighlightMask}
             onUndo={() => card.editor.undo()}
             onClear={() => card.editor.clear()}
             onExportMask={() => {

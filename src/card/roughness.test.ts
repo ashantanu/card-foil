@@ -21,22 +21,31 @@ test('mid mask interpolates', () => {
 
 import { splitByMask } from './textures'
 
-test('splitByMask: paper pixel goes fully to emissive, foil fully to albedo', () => {
-  const art = new Uint8ClampedArray([200, 150, 100, 255, 40, 50, 60, 255])
-  const mask = new Uint8ClampedArray([0, 0, 0, 255, 255, 255, 255, 255])
+test('splitByMask: paper pixel is exact artwork in emissive, black in albedo', () => {
+  const art = new Uint8ClampedArray([200, 150, 100, 255])
+  const mask = new Uint8ClampedArray([0, 0, 0, 255])
   const { albedo, emissive } = splitByMask(art, mask)
-  expect(Array.from(albedo)).toEqual([0, 0, 0, 255, 40, 50, 60, 255])
-  expect(Array.from(emissive)).toEqual([200, 150, 100, 255, 0, 0, 0, 255])
+  expect(Array.from(albedo)).toEqual([0, 0, 0, 255])
+  expect(Array.from(emissive)).toEqual([200, 150, 100, 255])
 })
 
-test('splitByMask: mid mask splits proportionally and sums to the artwork', () => {
+test('splitByMask: foil pixel keeps full albedo plus the floor fraction in emissive', () => {
+  const art = new Uint8ClampedArray([40, 50, 60, 255])
+  const mask = new Uint8ClampedArray([255, 255, 255, 255])
+  const { albedo, emissive } = splitByMask(art, mask, 0.35)
+  expect(Array.from(albedo)).toEqual([40, 50, 60, 255])
+  expect(Array.from(emissive)).toEqual([14, 18, 21, 255]) // round(art * 0.35)
+})
+
+test('splitByMask: mid mask interpolates both layers', () => {
   const art = new Uint8ClampedArray([200, 100, 50, 255])
   const mask = new Uint8ClampedArray([128, 128, 128, 255])
-  const { albedo, emissive } = splitByMask(art, mask)
+  const { albedo, emissive } = splitByMask(art, mask, 0.35)
   for (let c = 0; c < 3; c++) {
-    expect(albedo[c] + emissive[c]).toBeGreaterThanOrEqual(art[c] - 1)
-    expect(albedo[c] + emissive[c]).toBeLessThanOrEqual(art[c] + 1)
     expect(albedo[c]).toBeGreaterThan(0)
-    expect(emissive[c]).toBeGreaterThan(0)
+    expect(albedo[c]).toBeLessThan(art[c])
+    // emissive between floor (full foil) and full artwork (no foil)
+    expect(emissive[c]).toBeGreaterThan(art[c] * 0.35 - 1)
+    expect(emissive[c]).toBeLessThan(art[c])
   }
 })
