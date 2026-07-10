@@ -44,4 +44,11 @@ describe('floodSelect', () => {
     expect(Array.from(floodSelect(img2, 0, 0, 10))).toEqual([1, 1, 0])
     expect(Array.from(floodSelect(img2, 0, 0, 0))).toEqual([1, 0, 0])
   })
+
+  test('seed one pixel past the right/bottom edge selects nothing', () => {
+    // 4x3 fixture: x === width (4) or y === height (3) is out of bounds,
+    // as produced by a click landing on the exact right/bottom edge.
+    expect(Array.from(floodSelect(img, 4, 1, 0))).toEqual(new Array(12).fill(0))
+    expect(Array.from(floodSelect(img, 1, 3, 0))).toEqual(new Array(12).fill(0))
+  })
 })

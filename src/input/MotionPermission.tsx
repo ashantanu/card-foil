@@ -10,9 +10,14 @@ export function needsMotionPermission(): boolean {
   return typeof DOE?.requestPermission === 'function'
 }
 
+// Module-level so the grant/deny outcome survives this component unmounting
+// (e.g. switching Preview -> Edit -> Preview), rather than resetting to
+// 'idle' and re-showing the permission button on iOS.
+let resolved: 'granted' | 'denied' | null = null
+
 export function MotionPermission({ onGranted }: { onGranted?: () => void }) {
   const [state, setState] = useState<'unneeded' | 'idle' | 'granted' | 'denied'>(
-    () => (needsMotionPermission() ? 'idle' : 'unneeded'),
+    () => resolved ?? (needsMotionPermission() ? 'idle' : 'unneeded'),
   )
 
   if (state === 'unneeded' || state === 'granted') return null
@@ -28,9 +33,11 @@ export function MotionPermission({ onGranted }: { onGranted?: () => void }) {
             requestPermission: RequestPermission
           }).requestPermission
           const result = await request()
-          setState(result === 'granted' ? 'granted' : 'denied')
+          resolved = result
+          setState(result)
           if (result === 'granted') onGranted?.()
         } catch {
+          resolved = 'denied'
           setState('denied')
         }
       }}

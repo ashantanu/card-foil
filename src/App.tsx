@@ -125,14 +125,15 @@ export default function App() {
                 .finally(() => URL.revokeObjectURL(url))
             }}
             onUploadCard={(artwork) => {
-              setCard((prev) => {
-                if (prev) {
-                  prev.maps.map.dispose()
-                  prev.maps.metalnessMap.dispose()
-                  prev.maps.roughnessMap.dispose()
-                }
-                return makeCardState(artwork)
-              })
+              // Dispose here (a plain read of `card`, not inside the setState
+              // updater) since StrictMode double-invokes updaters, which
+              // would double-dispose textures if this side effect lived there.
+              if (card) {
+                card.maps.map.dispose()
+                card.maps.metalnessMap.dispose()
+                card.maps.roughnessMap.dispose()
+              }
+              setCard(makeCardState(artwork))
               setView('edit')
             }}
             onError={setError}

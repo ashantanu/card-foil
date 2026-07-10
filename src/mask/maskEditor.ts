@@ -1,13 +1,14 @@
 import { BoundedStack } from './boundedStack'
 
 const UNDO_LIMIT = 20
+const UNDO_BYTE_BUDGET = 64 * 1024 * 1024
 
 /** Grayscale foil mask editor: white = foil, black = not foil. */
 export class MaskEditor {
   readonly canvas: HTMLCanvasElement
   onChange?: () => void
   private ctx: CanvasRenderingContext2D
-  private undoStack = new BoundedStack<ImageData>(UNDO_LIMIT)
+  private undoStack: BoundedStack<ImageData>
   private stroking = false
   private rafId: number | null = null
 
@@ -18,6 +19,10 @@ export class MaskEditor {
     this.ctx = this.canvas.getContext('2d', { willReadFrequently: true })!
     this.ctx.fillStyle = '#000'
     this.ctx.fillRect(0, 0, width, height)
+    // Cap undo memory to a byte budget instead of a flat snapshot count —
+    // at large canvas sizes 20 full ImageData snapshots can be hundreds of MB.
+    const limit = Math.max(4, Math.min(UNDO_LIMIT, Math.floor(UNDO_BYTE_BUDGET / (width * height * 4))))
+    this.undoStack = new BoundedStack<ImageData>(limit)
   }
 
   private snapshot(): void {
