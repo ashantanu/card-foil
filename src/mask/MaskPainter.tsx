@@ -93,6 +93,7 @@ export function MaskPainter({
         editor.strokeTo(x, y)
       }}
       onPointerUp={() => editor.endStroke()}
+      onPointerCancel={() => editor.endStroke()}
     >
       <canvas ref={bgRef} className="painter-layer" />
       <canvas ref={overlayRef} className="painter-layer" />

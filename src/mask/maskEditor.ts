@@ -9,6 +9,7 @@ export class MaskEditor {
   private ctx: CanvasRenderingContext2D
   private undoStack = new BoundedStack<ImageData>(UNDO_LIMIT)
   private stroking = false
+  private rafId: number | null = null
 
   constructor(width: number, height: number) {
     this.canvas = document.createElement('canvas')
@@ -24,7 +25,11 @@ export class MaskEditor {
   }
 
   private changed(): void {
-    this.onChange?.()
+    if (this.rafId != null) return
+    this.rafId = requestAnimationFrame(() => {
+      this.rafId = null
+      this.onChange?.()
+    })
   }
 
   /** x/y in mask-canvas pixel coordinates. Eraser paints black. */
