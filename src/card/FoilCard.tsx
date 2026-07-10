@@ -45,6 +45,11 @@ export function FoilCard({
         metalness={1}
         roughness={1}
         envMapIntensity={1.0}
+        // Reuse the mask to zero out dielectric specular on paper: without
+        // this, Fresnel sheen from the env adds a white haze over the artwork
+        // (reads as graying/desaturation). Metallic foil ignores this channel.
+        specularIntensityMap={maps.metalnessMap}
+        specularIntensity={1}
       />
     </mesh>
   )

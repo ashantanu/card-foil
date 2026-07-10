@@ -1,7 +1,10 @@
 import * as THREE from 'three'
 
-/** Roughness range: foil = 0.15 (38), paper = 0.9 (230). */
-const ROUGH_FOIL = 38
+/** Roughness range: foil = 0.31 (80), paper = 0.9 (230).
+    Foil is deliberately not mirror-glossy: against the high-contrast studio
+    HDRI a near-mirror reads as either blinding white or pitch black; ~0.3
+    spreads highlights into the gradual sweep real stamped foil shows. */
+const ROUGH_FOIL = 80
 const ROUGH_PAPER = 230
 
 /** Map an RGBA mask (white = foil) to an RGBA roughness image. Pure. */

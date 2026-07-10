@@ -28,11 +28,10 @@ export function CardScene({
         gl.domElement.addEventListener('webglcontextlost', (e) => e.preventDefault())
       }
     >
-      {/* These stack with the environment's own light — keep the total diffuse
-          irradiance on the (matte, metalness 0) paper close to 1.0 so paper
-          matches the uploaded artwork's brightness. */}
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[2, 3, 4]} intensity={0.15} />
+      {/* Paper is emissive (unlit) and its specular is masked off, so lights
+          only affect foil. The directional adds a steady warm glint so foil
+          never reads fully black between the env's bright patches. */}
+      <directionalLight position={[2, 3, 4]} intensity={0.5} />
       {/* Vendored (public/env/, CC0 Poly Haven via pmndrs/drei-assets) instead
           of preset="studio", which fetches from a third-party CDN at runtime —
           slow or blocked CDN = black scene. */}
