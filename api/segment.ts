@@ -45,16 +45,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   fal.config({ credentials: key })
   const model = process.env.SAM_MODEL ?? 'fal-ai/sam2/image'
-  try {
-    const result = await fal.subscribe(model, {
-      input: {
+  const roundedPoints = points.map((p) => ({
+    x: Math.round(p.x),
+    y: Math.round(p.y),
+    label: p.label,
+  }))
+  // SAM 2 and SAM 3 speak different dialects on fal: the points field is
+  // named differently, SAM 3 has a text `prompt` that DEFAULTS to "wheel"
+  // (must be blanked), and SAM 3's `image` output is an apply_mask preview —
+  // the actual masks are in `masks`.
+  const isSam3 = model.includes('sam-3')
+  const input = isSam3
+    ? {
         image_url: image,
-        prompts: points.map((p) => ({ x: Math.round(p.x), y: Math.round(p.y), label: p.label })),
+        point_prompts: roundedPoints,
+        prompt: '',
+        apply_mask: false,
+        return_multiple_masks: false,
         sync_mode: true,
-        output_format: 'png',
-      },
-    })
-    const mask = (result.data as { image?: { url?: string } }).image?.url
+        output_format: 'png' as const,
+      }
+    : {
+        image_url: image,
+        prompts: roundedPoints,
+        sync_mode: true,
+        output_format: 'png' as const,
+      }
+  try {
+    const result = await fal.subscribe(model, { input })
+    const data = result.data as {
+      image?: { url?: string }
+      masks?: Array<{ url?: string }>
+    }
+    const mask = (isSam3 ? data.masks?.[0]?.url : undefined) ?? data.image?.url
     if (!mask) {
       res.status(502).json({ error: 'segmentation returned no mask' })
       return

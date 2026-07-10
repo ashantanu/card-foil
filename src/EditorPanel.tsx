@@ -15,6 +15,9 @@ export function EditorPanel(props: {
   smartAvailable: boolean
   smartLabel: 0 | 1
   setSmartLabel: (l: 0 | 1) => void
+  smartIndexing: boolean
+  smartIndexed: number
+  smartIndexTotal: number
   onUndo: () => void
   onClear: () => void
   onExportMask: () => void
@@ -60,6 +63,15 @@ export function EditorPanel(props: {
               </label>
             ))}
           </fieldset>
+          {props.smartIndexing && (
+            <p className="hint">
+              Indexing regions…{' '}
+              {props.smartIndexTotal > 0
+                ? `${props.smartIndexed}/${props.smartIndexTotal}`
+                : ''}{' '}
+              (taps work meanwhile, just slower)
+            </p>
+          )}
           <p className="hint">Sends the card image to our segmentation service.</p>
         </>
       )}

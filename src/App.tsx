@@ -57,7 +57,9 @@ export default function App() {
   const [wandMode, setWandMode] = useState<WandMode>('add')
   const [highlightMask, setHighlightMask] = useState(true)
   const [smartLabel, setSmartLabel] = useState<0 | 1>(1)
-  const smart = useSmartSelect(card?.artwork ?? null)
+  // Only hand the artwork over in Edit view: presegmentation (a paid API
+  // call) should start when someone begins editing, not on page load.
+  const smart = useSmartSelect(view === 'edit' ? (card?.artwork ?? null) : null)
 
   useEffect(() => {
     let cancelled = false
@@ -142,6 +144,9 @@ export default function App() {
             smartAvailable={smart.state.available}
             smartLabel={smartLabel}
             setSmartLabel={setSmartLabel}
+            smartIndexing={smart.state.indexing}
+            smartIndexed={smart.state.indexed}
+            smartIndexTotal={smart.state.indexTotal}
             onUndo={() => card.editor.undo()}
             onClear={() => card.editor.clear()}
             onExportMask={() => {
