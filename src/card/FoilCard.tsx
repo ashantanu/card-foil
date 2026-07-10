@@ -39,7 +39,7 @@ export function FoilCard({
         roughnessMap={maps.roughnessMap}
         metalness={1}
         roughness={1}
-        envMapIntensity={1.1}
+        envMapIntensity={0.8}
       />
     </mesh>
   )

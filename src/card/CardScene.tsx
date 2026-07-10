@@ -17,6 +17,10 @@ export function CardScene({
 }) {
   return (
     <Canvas
+      // `flat` disables ACES tone mapping so matte paper renders the artwork's
+      // actual colors — with tone mapping + stacked lights the whole card
+      // washed out brighter than the uploaded image.
+      flat
       camera={{ position: [0, 0, 4.2], fov: 45 }}
       dpr={[1, 2]}
       onCreated={({ gl }) =>
@@ -24,9 +28,11 @@ export function CardScene({
         gl.domElement.addEventListener('webglcontextlost', (e) => e.preventDefault())
       }
     >
-      {/* Base light so the card is visible before the HDRI decodes. */}
-      <ambientLight intensity={0.9} />
-      <directionalLight position={[2, 3, 4]} intensity={0.6} />
+      {/* These stack with the environment's own light — keep the total diffuse
+          irradiance on the (matte, metalness 0) paper close to 1.0 so paper
+          matches the uploaded artwork's brightness. */}
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[2, 3, 4]} intensity={0.15} />
       {/* Vendored (public/env/, CC0 Poly Haven via pmndrs/drei-assets) instead
           of preset="studio", which fetches from a third-party CDN at runtime —
           slow or blocked CDN = black scene. */}
