@@ -54,7 +54,7 @@ export default function App() {
   const [brushSize, setBrushSize] = useState(24)
   const [tolerance, setTolerance] = useState(40)
   const [wandMode, setWandMode] = useState<WandMode>('add')
-  const [highlightMask, setHighlightMask] = useState(false)
+  const [highlightMask, setHighlightMask] = useState(true)
 
   useEffect(() => {
     let cancelled = false
