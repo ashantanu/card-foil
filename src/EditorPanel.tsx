@@ -12,6 +12,9 @@ export function EditorPanel(props: {
   setWandMode: (m: WandMode) => void
   highlightMask: boolean
   setHighlightMask: (v: boolean) => void
+  smartAvailable: boolean
+  smartLabel: 0 | 1
+  setSmartLabel: (l: 0 | 1) => void
   onUndo: () => void
   onClear: () => void
   onExportMask: () => void
@@ -25,7 +28,10 @@ export function EditorPanel(props: {
 
       <fieldset>
         <legend>Tool</legend>
-        {(['brush', 'eraser', 'wand'] as const).map((t) => (
+        {(props.smartAvailable
+          ? (['smart', 'brush', 'eraser', 'wand'] as const)
+          : (['brush', 'eraser', 'wand'] as const)
+        ).map((t) => (
           <label key={t}>
             <input
               type="radio"
@@ -33,12 +39,32 @@ export function EditorPanel(props: {
               checked={props.tool === t}
               onChange={() => props.setTool(t)}
             />
-            {t === 'wand' ? 'color wand' : t}
+            {t === 'wand' ? 'color wand' : t === 'smart' ? 'smart select (AI)' : t}
           </label>
         ))}
       </fieldset>
 
-      {props.tool !== 'wand' && (
+      {props.tool === 'smart' && (
+        <>
+          <fieldset>
+            <legend>Tap means</legend>
+            {([1, 0] as const).map((l) => (
+              <label key={l}>
+                <input
+                  type="radio"
+                  name="smart-label"
+                  checked={props.smartLabel === l}
+                  onChange={() => props.setSmartLabel(l)}
+                />
+                {l === 1 ? 'include this' : 'exclude this'}
+              </label>
+            ))}
+          </fieldset>
+          <p className="hint">Sends the card image to our segmentation service.</p>
+        </>
+      )}
+
+      {(props.tool === 'brush' || props.tool === 'eraser') && (
         <label className="slider">
           Brush size {props.brushSize}px
           <input

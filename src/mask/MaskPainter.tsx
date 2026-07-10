@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react'
+import type { SamPoint } from '../segment/segmentClient'
 import { floodSelect } from './floodSelect'
 import type { MaskEditor } from './maskEditor'
 
-export type Tool = 'brush' | 'eraser' | 'wand'
+export type Tool = 'smart' | 'brush' | 'eraser' | 'wand'
 export type WandMode = 'add' | 'remove'
 
 export function MaskPainter({
@@ -13,6 +14,12 @@ export function MaskPainter({
   tolerance,
   wandMode,
   highlightMask,
+  smartPoints,
+  smartProposal,
+  smartBusy,
+  onSmartTap,
+  onSmartCommit,
+  onSmartCancel,
 }: {
   artwork: HTMLCanvasElement
   editor: MaskEditor
@@ -21,10 +28,17 @@ export function MaskPainter({
   tolerance: number
   wandMode: WandMode
   highlightMask: boolean
+  smartPoints: SamPoint[]
+  smartProposal: Uint8Array | null
+  smartBusy: boolean
+  onSmartTap: (x: number, y: number) => void
+  onSmartCommit: (mode: 'add' | 'remove') => void
+  onSmartCancel: () => void
 }) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const bgRef = useRef<HTMLCanvasElement>(null)
   const overlayRef = useRef<HTMLCanvasElement>(null)
+  const proposalRef = useRef<HTMLCanvasElement>(null)
 
   // Draw artwork + tinted mask overlay; re-tint on every editor change.
   useEffect(() => {
@@ -72,6 +86,27 @@ export function MaskPainter({
     }
   }, [artwork, editor, highlightMask])
 
+  // Smart-select proposal layer (cyan, distinct from the committed mask).
+  useEffect(() => {
+    const c = proposalRef.current!
+    c.width = artwork.width
+    c.height = artwork.height
+    const ctx = c.getContext('2d')!
+    if (!smartProposal) {
+      ctx.clearRect(0, 0, c.width, c.height)
+      return
+    }
+    const img = ctx.createImageData(c.width, c.height)
+    for (let p = 0; p < smartProposal.length; p++) {
+      const i = p * 4
+      img.data[i] = 34 // #22d3ee
+      img.data[i + 1] = 211
+      img.data[i + 2] = 238
+      img.data[i + 3] = smartProposal[p] ? 150 : 0
+    }
+    ctx.putImageData(img, 0, 0)
+  }, [artwork, smartProposal])
+
   /** Display px → mask-canvas px. */
   const toMask = (e: React.PointerEvent) => {
     const rect = wrapRef.current!.getBoundingClientRect()
@@ -89,7 +124,9 @@ export function MaskPainter({
       onPointerDown={(e) => {
         e.currentTarget.setPointerCapture(e.pointerId)
         const { x, y } = toMask(e)
-        if (tool === 'wand') {
+        if (tool === 'smart') {
+          onSmartTap(x, y)
+        } else if (tool === 'wand') {
           const ctx = artwork.getContext('2d', { willReadFrequently: true })!
           const raster = ctx.getImageData(0, 0, artwork.width, artwork.height)
           editor.applySelection(floodSelect(raster, x, y, tolerance), wandMode)
@@ -98,7 +135,7 @@ export function MaskPainter({
         }
       }}
       onPointerMove={(e) => {
-        if (tool === 'wand' || e.buttons === 0) return
+        if (tool === 'smart' || tool === 'wand' || e.buttons === 0) return
         const { x, y } = toMask(e)
         editor.strokeTo(x, y)
       }}
@@ -107,6 +144,30 @@ export function MaskPainter({
     >
       <canvas ref={bgRef} className="painter-layer" />
       <canvas ref={overlayRef} className="painter-layer" />
+      <canvas ref={proposalRef} className="painter-layer" />
+      {tool === 'smart' &&
+        smartPoints.map((p, i) => (
+          <span
+            key={i}
+            className={`tap-marker ${p.label === 1 ? 'tap-marker--include' : 'tap-marker--exclude'}`}
+            style={{
+              left: `${(p.x / artwork.width) * 100}%`,
+              top: `${(p.y / artwork.height) * 100}%`,
+            }}
+          />
+        ))}
+      {tool === 'smart' && (smartProposal || smartBusy) && (
+        <div className="proposal-actions" onPointerDown={(e) => e.stopPropagation()}>
+          {smartBusy && <span className="spinner" aria-label="segmenting" />}
+          {smartProposal && (
+            <>
+              <button onClick={() => onSmartCommit('add')}>Add foil</button>
+              <button onClick={() => onSmartCommit('remove')}>Remove foil</button>
+            </>
+          )}
+          <button onClick={onSmartCancel}>Cancel</button>
+        </div>
+      )}
     </div>
   )
 }

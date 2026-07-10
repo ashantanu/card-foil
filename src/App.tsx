@@ -12,6 +12,7 @@ import {
 import { EditorPanel } from './EditorPanel'
 import { MaskEditor } from './mask/maskEditor'
 import { MaskPainter, type Tool, type WandMode } from './mask/MaskPainter'
+import { useSmartSelect } from './segment/useSmartSelect'
 import { MotionPermission } from './input/MotionPermission'
 import { useTilt } from './input/useTilt'
 
@@ -50,11 +51,13 @@ export default function App() {
   const [view, setView] = useState<'preview' | 'edit'>('preview')
   const [card, setCard] = useState<CardState | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [tool, setTool] = useState<Tool>('brush')
+  const [tool, setTool] = useState<Tool>('smart')
   const [brushSize, setBrushSize] = useState(24)
   const [tolerance, setTolerance] = useState(40)
   const [wandMode, setWandMode] = useState<WandMode>('add')
   const [highlightMask, setHighlightMask] = useState(true)
+  const [smartLabel, setSmartLabel] = useState<0 | 1>(1)
+  const smart = useSmartSelect(card?.artwork ?? null)
 
   useEffect(() => {
     let cancelled = false
@@ -76,6 +79,9 @@ export default function App() {
   if (!card) return null
 
   const aspect = card.artwork.width / card.artwork.height
+  // If the deployment has no segmentation backend (503), fall back to brush.
+  const effectiveTool: Tool = tool === 'smart' && !smart.state.available ? 'brush' : tool
+  const banner = error ?? smart.state.error
 
   return (
     <div className="layout">
@@ -91,9 +97,9 @@ export default function App() {
         </nav>
       </header>
 
-      {error && (
+      {banner && (
         <p className="error" onClick={() => setError(null)}>
-          {error}
+          {banner}
         </p>
       )}
 
@@ -107,11 +113,20 @@ export default function App() {
           <MaskPainter
             artwork={card.artwork}
             editor={card.editor}
-            tool={tool}
+            tool={effectiveTool}
             brushSize={brushSize}
             tolerance={tolerance}
             wandMode={wandMode}
             highlightMask={highlightMask}
+            smartPoints={smart.state.points}
+            smartProposal={smart.state.proposal}
+            smartBusy={smart.state.busy}
+            onSmartTap={(x, y) => smart.tap(x, y, smartLabel)}
+            onSmartCommit={(mode) => {
+              if (smart.state.proposal) card.editor.applySelection(smart.state.proposal, mode)
+              smart.reset()
+            }}
+            onSmartCancel={smart.reset}
           />
           <EditorPanel
             tool={tool}
@@ -124,6 +139,9 @@ export default function App() {
             setWandMode={setWandMode}
             highlightMask={highlightMask}
             setHighlightMask={setHighlightMask}
+            smartAvailable={smart.state.available}
+            smartLabel={smartLabel}
+            setSmartLabel={setSmartLabel}
             onUndo={() => card.editor.undo()}
             onClear={() => card.editor.clear()}
             onExportMask={() => {
@@ -152,6 +170,7 @@ export default function App() {
                 card.maps.metalnessMap.dispose()
                 card.maps.roughnessMap.dispose()
               }
+              smart.reset()
               setCard(makeCardState(artwork))
               setView('edit')
             }}
