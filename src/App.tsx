@@ -108,6 +108,7 @@ export default function App() {
             tolerance={tolerance}
             setTolerance={setTolerance}
             onUndo={() => card.editor.undo()}
+            onClear={() => card.editor.clear()}
             onExportMask={() => {
               void card.editor.exportPNG().then((blob) => {
                 const a = document.createElement('a')

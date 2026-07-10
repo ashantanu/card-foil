@@ -21,7 +21,7 @@ body { background: #14120f; color: #e8e2d5; font-family: system-ui, sans-serif; 
 }
 .upload--drag { border-color: #c9a24b; color: #c9a24b; }
 
-.layout { display: flex; flex-direction: column; height: 100%; }
+.layout { display: flex; flex-direction: column; height: 100%; height: 100dvh; }
 .topbar {
   display: flex; justify-content: space-between; align-items: center;
   padding: 10px 16px; border-bottom: 1px solid #2c2822;
@@ -40,7 +40,9 @@ body { background: #14120f; color: #e8e2d5; font-family: system-ui, sans-serif; 
 .file-button { border: 1px solid #6b6353; border-radius: 6px; padding: 4px 10px; cursor: pointer; }
 .error { padding: 8px 16px; color: #e08b8b; cursor: pointer; }
 @media (max-width: 700px) {
-  .edit-layout { flex-direction: column; }
-  .panel { width: 100%; }
-  .painter { max-width: 100%; height: auto; width: 100%; }
+  /* Fit the whole edit view in the viewport: no page scrolling, so swipes on
+     the canvas can only ever mean "paint", never a scroll gone wrong. */
+  .edit-layout { flex-direction: column; overflow: hidden; gap: 12px; padding: 12px; }
+  .panel { width: 100%; overflow-y: auto; min-height: 0; }
+  .painter { height: 55dvh; width: auto; max-width: 100%; align-self: center; flex: 0 0 auto; }
 }

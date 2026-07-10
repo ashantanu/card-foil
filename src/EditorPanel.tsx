@@ -9,6 +9,7 @@ export function EditorPanel(props: {
   tolerance: number
   setTolerance: (n: number) => void
   onUndo: () => void
+  onClear: () => void
   onExportMask: () => void
   onImportMask: (file: File) => void
   onUploadCard: (canvas: HTMLCanvasElement) => void
@@ -61,6 +62,7 @@ export function EditorPanel(props: {
 
       <div className="row">
         <button onClick={props.onUndo}>Undo</button>
+        <button onClick={props.onClear}>Clear foil</button>
         <button onClick={props.onExportMask}>Export mask</button>
         <label className="file-button">
           Import mask

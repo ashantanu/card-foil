@@ -37,6 +37,15 @@ export class MaskEditor {
     })
   }
 
+  /** Reset the whole mask to no-foil (undoable). */
+  clear(): void {
+    this.snapshot()
+    this.stroking = false
+    this.ctx.fillStyle = '#000'
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
+    this.changed()
+  }
+
   /** x/y in mask-canvas pixel coordinates. Eraser paints black. */
   beginStroke(x: number, y: number, size: number, erase: boolean): void {
     this.snapshot()

@@ -24,11 +24,13 @@ export function CardScene({
         gl.domElement.addEventListener('webglcontextlost', (e) => e.preventDefault())
       }
     >
-      {/* Base light so the card is visible before/without the HDRI (it loads
-          from the pmndrs CDN at runtime). */}
+      {/* Base light so the card is visible before the HDRI decodes. */}
       <ambientLight intensity={0.9} />
       <directionalLight position={[2, 3, 4]} intensity={0.6} />
-      <Environment preset="studio" />
+      {/* Vendored (public/env/, CC0 Poly Haven via pmndrs/drei-assets) instead
+          of preset="studio", which fetches from a third-party CDN at runtime —
+          slow or blocked CDN = black scene. */}
+      <Environment files="/env/studio_small_03_1k.hdr" />
       <FoilCard maps={maps} aspect={aspect} tilt={tilt} frozen={frozen} />
     </Canvas>
   )
