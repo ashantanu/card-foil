@@ -33,13 +33,18 @@ export function FoilCard({
   return (
     <mesh ref={mesh}>
       <planeGeometry args={[CARD_HEIGHT * aspect, CARD_HEIGHT]} />
+      {/* Paper renders via emissiveMap (unlit — exactly the artwork's pixels,
+          lighting cannot brighten it); lights and reflections only affect the
+          foil regions, whose albedo lives in `map`. */}
       <meshPhysicalMaterial
         map={maps.map}
+        emissiveMap={maps.emissiveMap}
+        emissive="#ffffff"
         metalnessMap={maps.metalnessMap}
         roughnessMap={maps.roughnessMap}
         metalness={1}
         roughness={1}
-        envMapIntensity={0.8}
+        envMapIntensity={1.0}
       />
     </mesh>
   )

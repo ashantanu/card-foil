@@ -5,6 +5,7 @@ import {
   buildCardMaps,
   loadImage,
   loadSampleAssets,
+  updateFoilSplitCanvases,
   updateRoughnessCanvas,
   type CardMaps,
 } from './card/textures'
@@ -28,6 +29,14 @@ function makeCardState(artwork: HTMLCanvasElement, initialMask?: HTMLCanvasEleme
     maps.metalnessMap.needsUpdate = true
     updateRoughnessCanvas(editor.canvas, maps.roughnessMap.image as HTMLCanvasElement)
     maps.roughnessMap.needsUpdate = true
+    updateFoilSplitCanvases(
+      artwork,
+      editor.canvas,
+      maps.map.image as HTMLCanvasElement,
+      maps.emissiveMap.image as HTMLCanvasElement,
+    )
+    maps.map.needsUpdate = true
+    maps.emissiveMap.needsUpdate = true
   }
   return { artwork, editor, maps }
 }
@@ -131,6 +140,7 @@ export default function App() {
               // would double-dispose textures if this side effect lived there.
               if (card) {
                 card.maps.map.dispose()
+                card.maps.emissiveMap.dispose()
                 card.maps.metalnessMap.dispose()
                 card.maps.roughnessMap.dispose()
               }
