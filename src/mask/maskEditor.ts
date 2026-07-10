@@ -9,6 +9,8 @@ export class MaskEditor {
   onChange?: () => void
   private ctx: CanvasRenderingContext2D
   private undoStack: BoundedStack<ImageData>
+  private redoStack: BoundedStack<ImageData>
+  private stackLimit: number
   private stroking = false
   private rafId: number | null = null
 
@@ -21,12 +23,18 @@ export class MaskEditor {
     this.ctx.fillRect(0, 0, width, height)
     // Cap undo memory to a byte budget instead of a flat snapshot count —
     // at large canvas sizes 20 full ImageData snapshots can be hundreds of MB.
-    const limit = Math.max(4, Math.min(UNDO_LIMIT, Math.floor(UNDO_BYTE_BUDGET / (width * height * 4))))
-    this.undoStack = new BoundedStack<ImageData>(limit)
+    this.stackLimit = Math.max(
+      4,
+      Math.min(UNDO_LIMIT, Math.floor(UNDO_BYTE_BUDGET / (width * height * 4))),
+    )
+    this.undoStack = new BoundedStack<ImageData>(this.stackLimit)
+    this.redoStack = new BoundedStack<ImageData>(this.stackLimit)
   }
 
   private snapshot(): void {
     this.undoStack.push(this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height))
+    // A new edit invalidates the redo branch.
+    this.redoStack = new BoundedStack<ImageData>(this.stackLimit)
   }
 
   private changed(): void {
@@ -94,7 +102,17 @@ export class MaskEditor {
     if (this.stroking) return
     const prev = this.undoStack.pop()
     if (!prev) return
+    this.redoStack.push(this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height))
     this.ctx.putImageData(prev, 0, 0)
+    this.changed()
+  }
+
+  redo(): void {
+    if (this.stroking) return
+    const next = this.redoStack.pop()
+    if (!next) return
+    this.undoStack.push(this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height))
+    this.ctx.putImageData(next, 0, 0)
     this.changed()
   }
 

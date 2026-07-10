@@ -18,7 +18,9 @@ export function EditorPanel(props: {
   smartIndexing: boolean
   smartIndexed: number
   smartIndexTotal: number
+  smartRegionCount: number
   onUndo: () => void
+  onRedo: () => void
   onClear: () => void
   onExportMask: () => void
   onImportMask: (file: File) => void
@@ -63,7 +65,7 @@ export function EditorPanel(props: {
               </label>
             ))}
           </fieldset>
-          {props.smartIndexing && (
+          {props.smartIndexing ? (
             <p className="hint">
               Indexing regions…{' '}
               {props.smartIndexTotal > 0
@@ -71,7 +73,9 @@ export function EditorPanel(props: {
                 : ''}{' '}
               (taps work meanwhile, just slower)
             </p>
-          )}
+          ) : props.smartRegionCount > 0 ? (
+            <p className="hint">{props.smartRegionCount} regions ready — taps are instant.</p>
+          ) : null}
           <p className="hint">Sends the card image to our segmentation service.</p>
         </>
       )}
@@ -129,6 +133,7 @@ export function EditorPanel(props: {
 
       <div className="row">
         <button onClick={props.onUndo}>Undo</button>
+        <button onClick={props.onRedo}>Redo</button>
         <button onClick={props.onClear}>Clear foil</button>
         <button onClick={props.onExportMask}>Export mask</button>
         <label className="file-button">

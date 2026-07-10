@@ -6,7 +6,7 @@ import { segment, SegmentUnavailableError, type SamPoint } from './segmentClient
 export interface SmartSelectState {
   points: SamPoint[]
   proposal: Uint8Array | null
-  /** true while a live (network) segmentation is in flight */
+  /** number of live (network) segmentations in flight */
   busy: boolean
   error: string | null
   /** false once the server reports 503 (no FAL_KEY) — hide the tool. */
@@ -15,13 +15,24 @@ export interface SmartSelectState {
   indexing: boolean
   indexed: number
   indexTotal: number
+  /** cached region count once indexing finishes (0 = cache unavailable) */
+  regionCount: number
+}
+
+interface TapEntry {
+  point: SamPoint
+  /** region resolved from cache immediately, or filled in when the live call lands */
+  region: BitMask | null
+  cancelled: boolean
 }
 
 /**
  * Smart-select with a region cache: the card is auto-segmented once
  * (presegment) and taps resolve instantly against cached region masks —
  * include unions the tapped region into the proposal, exclude subtracts it.
- * Taps that hit no cached region fall back to a live point-prompt call.
+ * Taps that hit no cached region fall back to live point-prompt calls, which
+ * ACCUMULATE (each resolves independently and merges in tap order — a new
+ * tap never cancels an earlier one). undoTap removes the most recent tap.
  */
 export function useSmartSelect(artwork: HTMLCanvasElement | null) {
   const [state, setState] = useState<SmartSelectState>({
@@ -33,17 +44,20 @@ export function useSmartSelect(artwork: HTMLCanvasElement | null) {
     indexing: false,
     indexed: 0,
     indexTotal: 0,
+    regionCount: 0,
   })
   const cache = useRef<BitMask[]>([])
   const indexedFor = useRef<HTMLCanvasElement | null>(null)
-  const requestSeq = useRef(0)
+  const history = useRef<TapEntry[]>([])
+  const generation = useRef(0) // bumped on reset to orphan in-flight taps
+  const liveInFlight = useRef(0)
 
   // Build the region cache once per artwork.
   useEffect(() => {
     if (!artwork || indexedFor.current === artwork) return
     indexedFor.current = artwork
     cache.current = []
-    setState((s) => ({ ...s, indexing: true, indexed: 0, indexTotal: 0 }))
+    setState((s) => ({ ...s, indexing: true, indexed: 0, indexTotal: 0, regionCount: 0 }))
     presegment(artwork, (done, total) =>
       setState((s) =>
         indexedFor.current === artwork ? { ...s, indexed: done, indexTotal: total } : s,
@@ -52,68 +66,106 @@ export function useSmartSelect(artwork: HTMLCanvasElement | null) {
       .then((masks) => {
         if (indexedFor.current !== artwork) return
         cache.current = masks
-        setState((s) => ({ ...s, indexing: false }))
+        setState((s) => ({ ...s, indexing: false, regionCount: masks.length }))
       })
       .catch((e: unknown) => {
         if (indexedFor.current !== artwork) return
-        // Cache is an optimization — taps still work via the live path.
-        const unavailable = e instanceof SegmentUnavailableError
-        setState((s) => ({ ...s, indexing: false, available: !unavailable && s.available }))
+        if (e instanceof SegmentUnavailableError) {
+          setState((s) => ({ ...s, indexing: false, available: false }))
+        } else {
+          // The cache is an optimization — taps still work via the live path.
+          const message = e instanceof Error ? e.message : 'auto-segmentation failed'
+          setState((s) => ({
+            ...s,
+            indexing: false,
+            error: `region cache unavailable (${message}) — taps use live mode`,
+          }))
+        }
       })
   }, [artwork])
 
-  const applyRegion = useCallback((region: BitMask, label: 0 | 1, base: Uint8Array | null, size: number) => {
-    const next = base ? base.slice() : new Uint8Array(size)
-    if (label === 1) region.unionInto(next)
-    else region.subtractFrom(next)
-    return next
+  /** Fold the tap history (in order) into a fresh proposal. */
+  const recompute = useCallback((size: number) => {
+    const entries = history.current.filter((t) => !t.cancelled)
+    if (entries.length === 0) return null
+    const sel = new Uint8Array(size)
+    for (const t of entries) {
+      if (!t.region) continue // live tap still in flight
+      if (t.point.label === 1) t.region.unionInto(sel)
+      else t.region.subtractFrom(sel)
+    }
+    return sel
   }, [])
+
+  const publish = useCallback(() => {
+    if (!artwork) return
+    setState((s) => ({
+      ...s,
+      points: history.current.filter((t) => !t.cancelled).map((t) => t.point),
+      proposal: recompute(artwork.width * artwork.height),
+      busy: liveInFlight.current > 0,
+    }))
+  }, [artwork, recompute])
 
   const tap = useCallback(
     (x: number, y: number, label: 0 | 1) => {
       if (!artwork) return
-      const size = artwork.width * artwork.height
-      const region = pickMaskAt(cache.current, y * artwork.width + x)
-      if (region) {
-        // Instant local path.
-        setState((s) => ({
-          ...s,
-          points: [...s.points, { x, y, label }],
-          proposal: applyRegion(region, label, s.proposal, size),
-          error: null,
-        }))
+      const point: SamPoint = { x, y, label }
+      const cached = pickMaskAt(cache.current, y * artwork.width + x)
+      const entry: TapEntry = { point, region: cached, cancelled: false }
+      history.current.push(entry)
+      if (cached) {
+        publish()
         return
       }
-      // Live fallback for regions the auto-segmentation didn't isolate.
-      const seq = ++requestSeq.current
-      setState((s) => ({ ...s, points: [...s.points, { x, y, label }], busy: true, error: null }))
+      // Live fallback: always segment the object AT the tap (label 1); the
+      // user's include/exclude choice decides how the region merges.
+      const gen = generation.current
+      liveInFlight.current++
+      publish()
       void segment(artwork, [{ x, y, label: 1 }])
         .then((sel) => {
-          if (requestSeq.current !== seq) return // superseded
-          const region = BitMask.fromSelection(sel)
-          setState((cur) => ({
-            ...cur,
-            proposal: applyRegion(region, label, cur.proposal, size),
-            busy: false,
-          }))
+          if (generation.current !== gen) return
+          entry.region = BitMask.fromSelection(sel)
         })
         .catch((e: unknown) => {
-          if (requestSeq.current !== seq) return
+          if (generation.current !== gen) return
+          entry.cancelled = true
           if (e instanceof SegmentUnavailableError) {
-            setState((cur) => ({ ...cur, busy: false, available: false, error: e.message }))
+            setState((cur) => ({ ...cur, available: false }))
           } else {
             const message = e instanceof Error ? e.message : 'segmentation failed'
-            setState((cur) => ({ ...cur, busy: false, error: message }))
+            setState((cur) => ({ ...cur, error: message }))
           }
         })
+        .finally(() => {
+          if (generation.current !== gen) return
+          liveInFlight.current--
+          publish()
+        })
     },
-    [artwork, applyRegion],
+    [artwork, publish],
   )
 
+  /** Remove the most recent (non-cancelled) tap. */
+  const undoTap = useCallback(() => {
+    for (let i = history.current.length - 1; i >= 0; i--) {
+      if (!history.current[i].cancelled) {
+        history.current[i].cancelled = true
+        break
+      }
+    }
+    publish()
+  }, [publish])
+
   const reset = useCallback(() => {
-    requestSeq.current++ // orphan any in-flight request
+    generation.current++
+    liveInFlight.current = 0
+    history.current = []
     setState((s) => ({ ...s, points: [], proposal: null, busy: false, error: null }))
   }, [])
 
-  return { state, tap, reset }
+  const hasTaps = state.points.length > 0
+
+  return { state, tap, undoTap, hasTaps, reset }
 }

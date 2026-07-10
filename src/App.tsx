@@ -147,7 +147,11 @@ export default function App() {
             smartIndexing={smart.state.indexing}
             smartIndexed={smart.state.indexed}
             smartIndexTotal={smart.state.indexTotal}
-            onUndo={() => card.editor.undo()}
+            smartRegionCount={smart.state.regionCount}
+            // While composing a smart-select proposal, Undo removes the last
+            // tap; otherwise it undoes committed mask edits.
+            onUndo={() => (effectiveTool === 'smart' && smart.hasTaps ? smart.undoTap() : card.editor.undo())}
+            onRedo={() => card.editor.redo()}
             onClear={() => card.editor.clear()}
             onExportMask={() => {
               void card.editor.exportPNG().then((blob) => {

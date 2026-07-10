@@ -1,5 +1,6 @@
 import { maskToSelection } from './maskToSelection'
 import { BitMask } from './bitmask'
+import { toSegmentPayload } from './segmentClient'
 import { SegmentUnavailableError } from './segmentClient'
 
 const DECODE_CONCURRENCY = 4
@@ -23,7 +24,7 @@ export async function presegment(
   artwork: HTMLCanvasElement,
   onProgress: (done: number, total: number) => void,
 ): Promise<BitMask[]> {
-  const image = artwork.toDataURL('image/jpeg', 0.9)
+  const image = toSegmentPayload(artwork).canvas.toDataURL('image/jpeg', 0.9)
   const res = await fetch('/api/presegment', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },

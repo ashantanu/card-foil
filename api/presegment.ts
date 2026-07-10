@@ -35,6 +35,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       input: {
         image_url: image,
         output_format: 'png',
+        // Denser + more permissive than defaults so fine card elements
+        // (letterforms, thin ornaments) get their own regions.
+        points_per_side: 64,
+        pred_iou_thresh: 0.8,
+        stability_score_thresh: 0.92,
+        min_mask_region_area: 40,
       },
     })
     const data = result.data as { individual_masks?: Array<{ url?: string }> }
